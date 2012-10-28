@@ -415,7 +415,9 @@ int CommandListener::AsecCmd::runCommand(SocketClient *cli,
         cli->sendMsg(ResponseCode::CommandSyntaxError, "Unknown asec cmd", false);
     }
 
-    if (!rc) {
+    if (!rc || (-2 == rc)) {
+	 if (-2 == rc)
+	    SLOGD("rc=-2, but pretending operation was successful...");
         cli->sendMsg(ResponseCode::CommandOkay, "asec operation succeeded", false);
     } else {
         rc = ResponseCode::convertFromErrno();
