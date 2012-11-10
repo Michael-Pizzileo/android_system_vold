@@ -76,6 +76,7 @@ private:
     int                    mSavedDirtyRatio;
     int                    mUmsDirtyRatio;
     int                    mVolManagerDisabled;
+    int                    mNextLunNumber;
     
     UmsCollection         *mUms;
     UsbMdmMgr             *mUsbMdmMgr;
