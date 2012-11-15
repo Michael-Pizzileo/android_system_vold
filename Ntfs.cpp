@@ -38,59 +38,51 @@
 
 #include "Ntfs.h"
 
-static char FSCK_NTFS3G_PATH[] 	="/system/bin/ntfs-3g.probe";
-static char MOUNT_NTFS3G_PATH[] ="/system/bin/ntfs-3g";
-
 extern "C" int logwrap(int argc, const char **argv, int background);
 extern "C" int mount(const char *, const char *, const char *, unsigned long, const void *);
 
 int Ntfs::check(const char *fsPath) {
-    LOGV("Ntfs::check");
-	const char *args[4];
-	int rc;
-	
-	if (access(FSCK_NTFS3G_PATH, X_OK)) {
-        SLOGW("Skipping fs checks\n");
-        return 0;
-    }
-	
-	/* we first mount it read and write*/
-    args[0] = FSCK_NTFS3G_PATH;
-    args[1] = "--readwrite";        
-    args[2] = fsPath;
-    args[3] = NULL;
-
-    rc = logwrap(3, args, 1);
-	if( (rc != 0) && (rc !=15) )
-	{	
-       SLOGE("Filesystem check failed (unknown exit code %d)", rc);
-	   return -1;
-    }
-	
+  
+    // no NTFS file system check is performed, always return true
+    SLOGI("Ntfs filesystem: Skipping fs checks\n");
     return 0;
+
 }
 
 int Ntfs::doMount(const char *fsPath, const char *mountPoint,
                  bool ro, bool remount, bool executable,
                  int ownerUid, int ownerGid, int permMask, bool createLost) {
-#if 0
     int rc;
     unsigned long flags;
     char mountData[255];
 
- //  flags = MS_NODEV | MS_NOSUID | MS_DIRSYNC;
-  flags = MS_NODEV | MS_NOSUID ;//| MS_DIRSYNC;
+    flags = MS_NODEV | MS_NOSUID | MS_DIRSYNC;
+
     flags |= (executable ? 0 : MS_NOEXEC);
     flags |= (ro ? MS_RDONLY : 0);
     flags |= (remount ? MS_REMOUNT : 0);
 
+    // Testing/security, mount ro up to now
+    flags |= MS_RDONLY;
+    
+    /*
+     * Note: This is a temporary hack. If the sampling profiler is enabled,
+     * we make the SD card world-writable so any process can write snapshots.
+     *
+     * TODO: Remove this code once we have a drop box in system_server.
+     */
+    char value[PROPERTY_VALUE_MAX];
+    property_get("persist.sampling_profiler", value, "");
+    if (value[0] == '1') {
+        SLOGW("The SD card is world-writable because the"
+            " 'persist.sampling_profiler' system property is set to '1'.");
         permMask = 0;
+    }
 
     sprintf(mountData,
-            "nls=utf8,uid=%d,gid=%d,fmask=%o,dmask=%o",
+            "uid=%d,gid=%d,fmask=%o,dmask=%o",
             ownerUid, ownerGid, permMask, permMask);
 
-    SLOGE("[lkj]:mount flags %s, mountData %s\n",flags, mountData, );
     rc = mount(fsPath, mountPoint, "ntfs", flags, mountData);
 
     if (rc && errno == EROFS) {
@@ -98,30 +90,14 @@ int Ntfs::doMount(const char *fsPath, const char *mountPoint,
         flags |= MS_RDONLY;
         rc = mount(fsPath, mountPoint, "ntfs", flags, mountData);
     }
-    return rc;
-#else
-    int rc;
-    const char *args[11];
-    char mountData[255];
-
-    sprintf(mountData,
-            "locale=utf8,uid=%d,gid=%d,fmask=%o,dmask=%o,noatime,nodiratime",
-            ownerUid, ownerGid, permMask, permMask);
-
-    args[0] = MOUNT_NTFS3G_PATH;
-    args[1] = fsPath;
-    args[2] = mountPoint;
-    args[3] = "-o";
-    args[4] = mountData;
-    args[5] = NULL;
-    rc = logwrap(5, args, 1);
 
     return rc;
-#endif
-
 }
 
 int Ntfs::format(const char *fsPath, unsigned int numSectors) {
-    SLOGW("[lkj]:Skipping ntfs format\n");
-    return 0;
+    
+    SLOGE("Format ntfs filesystem not supported\n");
+    errno = EIO;
+    return -1;
+
 }
