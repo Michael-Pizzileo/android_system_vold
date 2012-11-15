@@ -45,12 +45,12 @@ extern "C" int logwrap(int argc, const char **argv, int background);
 extern "C" int mount(const char *, const char *, const char *, unsigned long, const void *);
 
 int Ntfs::check(const char *fsPath) {
-    ALOGV("Ntfs::check");
+    LOGV("Ntfs::check");
 	const char *args[4];
 	int rc;
 	
 	if (access(FSCK_NTFS3G_PATH, X_OK)) {
-        ALOGW("Skipping fs checks\n");
+        SLOGW("Skipping fs checks\n");
         return 0;
     }
 	
@@ -63,7 +63,7 @@ int Ntfs::check(const char *fsPath) {
     rc = logwrap(3, args, 1);
 	if( (rc != 0) && (rc !=15) )
 	{	
-       ALOGE("Filesystem check failed (unknown exit code %d)", rc);
+       SLOGE("Filesystem check failed (unknown exit code %d)", rc);
 	   return -1;
     }
 	
@@ -122,6 +122,6 @@ int Ntfs::doMount(const char *fsPath, const char *mountPoint,
 }
 
 int Ntfs::format(const char *fsPath, unsigned int numSectors) {
-    ALOGW("[lkj]:Skipping ntfs format\n");
+    SLOGW("[lkj]:Skipping ntfs format\n");
     return 0;
 }
