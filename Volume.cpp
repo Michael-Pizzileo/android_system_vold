@@ -44,8 +44,6 @@
 #include "VolumeManager.h"
 #include "ResponseCode.h"
 #include "Fat.h"
-#include "Ntfs.h"
-#include "Exfat.h"
 #include "Process.h"
 #include "cryptfs.h"
 
@@ -423,7 +421,7 @@ int Volume::mountVol() {
 
         errno = 0;
         setState(Volume::State_Checking);
-#if 0
+
         if (Fat::check(devicePath)) {
             if (errno == ENODATA) {
                 SLOGW("%s does not contain a FAT filesystem\n", devicePath);
@@ -435,7 +433,7 @@ int Volume::mountVol() {
             setState(Volume::State_Idle);
             return -1;
         }
-#endif
+
         /*
          * Mount the device on our internal staging mountpoint so we can
          * muck with it before exposing it to non priviledged users.
@@ -451,37 +449,11 @@ int Volume::mountVol() {
             // For secondary external storage we keep things locked up.
             gid = AID_MEDIA_RW;
         }
-
-        if( !Exfat::check(devicePath) )
-		{
-			if( Exfat::doMount(devicePath, "/mnt/secure/staging", false, false, false, AID_SYSTEM, gid, 0702, true) )
-			{
-				SLOGE("%s failed to mount via ExFat (%s)\n", devicePath, strerror(errno));
-				continue;
-			}
-		}
-	else if( !Fat::check(devicePath))
-		{
-			if( Fat::doMount(devicePath, "/mnt/secure/staging", false, false, false, AID_SYSTEM, gid, 0702, true) )
-			{
-				SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
-				continue;
-			}
-		}
-	else if( !Ntfs::check(devicePath))
-		{
-			if( Ntfs::doMount(devicePath, "/mnt/secure/staging", false, false, false, AID_SYSTEM, gid, 0702, true) )
-			{
-				SLOGE("%s failed to mount via NTFS (%s)\n", devicePath, strerror(errno));
-				continue;
-			}
-		}
-	else
-		{
-			SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
-			setState(Volume::State_Idle);
-			continue;
-	}
+        if (Fat::doMount(devicePath, "/mnt/secure/staging", false, false, false,
+                AID_SYSTEM, gid, 0702, true)) {
+            SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
+            continue;
+        }
 
         SLOGI("Device %s, target %s mounted @ /mnt/secure/staging", devicePath, getMountpoint());
 
